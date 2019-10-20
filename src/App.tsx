@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import GlobalStyle from './App.styles';
+import GlobalStyle, { colors } from './App.styles';
 import About from './components/About';
 import Categories from './components/Categories';
 import Header from './components/Header';
@@ -24,7 +24,7 @@ const {
 } = Categories;
 
 const App = () => (
-  <>
+  <CategoryColorContext.Provider value={colors.orangePrimary}>
     <GlobalStyle />
     <Router>
       <div>
@@ -47,7 +47,7 @@ const App = () => (
         <Route exact path="/wifi" component={Wifi} />
       </div>
     </Router>
-  </>
+  </CategoryColorContext.Provider>
 );
 
 export default App;
