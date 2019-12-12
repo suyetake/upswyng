@@ -1,12 +1,15 @@
 <script context="module">
+  import { ResourceSchedule } from "@upswyng/upswyng-core";
+
   export async function preload({ params, query }, { user }) {
     if (!user || !user.isAdmin) {
       this.error(401, "You must be an admin to access this page.");
     }
 
     const resourceResponse = await this.fetch(
-      `/api/resource/draft/${params.id}`
+      `/api/resource/draft/${params._id}`
     );
+
     const resourceData = await resourceResponse.json();
 
     if (resourceResponse.status !== 200) {
@@ -14,11 +17,16 @@
     } else {
       // see if we have an existing resource corresponding to this draft
       const existingResourceResponse = await this.fetch(
-        `/api/resource/${resourceData.draftResource.id}`
+        `/api/resource/${resourceData.draftResource.resourceId}`
       );
       if (existingResourceResponse.status === 404) {
         return {
-          draftResource: resourceData.draftResource,
+          draftResource: {
+            ...resourceData.draftResource,
+            schedule: ResourceSchedule.parse(
+              resourceData.draftResource.schedule
+            ),
+          },
           existingResource: null,
         };
       }
@@ -30,8 +38,18 @@
         );
       } else {
         return {
-          draftResource: resourceData.draftResource,
-          existingResource: existingResourceData.resource,
+          draftResource: {
+            ...resourceData.draftResource,
+            schedule: ResourceSchedule.parse(
+              resourceData.draftResource.schedule
+            ),
+          },
+          existingResource: {
+            ...existingResourceData.resource,
+            schedule: ResourceSchedule.parse(
+              existingResourceData.resource.schedule
+            ),
+          },
         };
       }
     }
@@ -55,10 +73,10 @@
   let isApproving = false; // Whether we've issued a call to the server to approve the draft resource
   let approveError = null; // error? Poupulated with the error from an approve attempt, if there has been one
 
-  function deleteDraft(id) {
+  function deleteDraft(_id) {
     isDeleting = true;
 
-    fetch(`/api/resource/draft/delete/${id}`, { method: "POST" })
+    fetch(`/api/resource/draft/delete/${_id}`, { method: "POST" })
       .then(_res => {
         if (_res.status >= 400) {
           throw new Error(_res);
@@ -76,10 +94,10 @@
       .finally(() => (isDeleting = false));
   }
 
-  function approveUpdate(id) {
+  function approveUpdate(_id) {
     isApproving = true;
 
-    fetch(`/api/resource/draft/approve/${id}`, { method: "POST" })
+    fetch(`/api/resource/draft/approve/${_id}`, { method: "POST" })
       .then(_res => {
         if (_res.status >= 400) {
           throw new Error(_res);
@@ -104,7 +122,7 @@
   <div class="container">
     {#if existingResource}
       <h1 class="title">Update Resource: {existingResource.name}</h1>
-      <p class="subtitle">ID: {existingResource.id}</p>
+      <p class="subtitle">Resource ID: {existingResource.resourceId}</p>
       <ResourceDiff
         leftResource={existingResource}
         rightResource={draftResource} />
@@ -141,12 +159,10 @@
     </div>
     <div>
       {#if approveError}
-        <p>
-          There was an error approving the resource: {approveError.meessage}
-        </p>
+        <p>There was an error approving the resource: {approveError.message}</p>
       {/if}
       {#if deleteError}
-        <p>There was an error deleting the resource: {deleteError.meessage}</p>
+        <p>There was an error deleting the resource: {deleteError.message}</p>
       {/if}
     </div>
   </div>
